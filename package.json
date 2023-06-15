@@ -1,0 +1,19 @@
+{
+  "name": "node_practical_2",
+  "version": "1.0.0",
+  "description": "This repo about program, which will tell us the shop open time.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "dependencies": {
+    "moment": "^2.29.4"
+  }
+}
