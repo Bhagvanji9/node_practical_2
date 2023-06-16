@@ -12,23 +12,39 @@ function validTime(time, open, close) {
   }
 }
 
+function closedWithin(currentTime, closingTime) {
+  const amOrPMOfCurrentTime = currentTime.format("A");
+
+  if (amOrPMOfCurrentTime === "AM") {
+    return closingTime.format("hh") - currentTime.format("hh") + 12;
+  } else {
+    return closingTime.format("hh") - currentTime.format("hh");
+  }
+}
+
 async function shopStatus() {
   const shop_schedule = JSON.parse(await fs.readFile("./SHOP_SCHEDULE.json"));
   const today = moment().format("ddd");
-  const time = moment();
-  const open = moment(shop_schedule[0].open, "hh:mm A");
-  const close = moment(shop_schedule[0].close, "hh:mm A");
-  const validDay = shop_schedule.find((dayOfWeek) => dayOfWeek.day === today);
+  const currentTime = moment();
+  const opening = moment(shop_schedule[0].open, "hh:mm A");
+  const closingTime = moment(shop_schedule[0].close, "hh:mm A");
 
-  const isvalidTime = validTime(time, open, close);
-  return { validDay, isvalidTime };
+  const validDay = shop_schedule.find((dayOfWeek) => dayOfWeek.day === today);
+  const isvalidTime = validTime(currentTime, opening, closingTime);
+  const closingHours = closedWithin(currentTime, closingTime);
+
+  return { validDay, isvalidTime, closingHours };
 }
 
 shopStatus()
   .then((data) => {
     if (data.validDay && data.isvalidTime) {
-      console.log("Shop is open !");
+      console.log("data", data);
+      console.log(
+        `Shop is open and it will be closed within ${data.closingHours} Hrs`
+      );
     } else {
+      console.log("data", data);
       console.log("Shop is closed !");
     }
   })
