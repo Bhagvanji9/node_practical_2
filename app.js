@@ -1,8 +1,10 @@
 const fs = require("fs/promises");
 const moment = require("moment");
 
-const testingDate = "2023-06-18T02:44:51+05:30";
+// Enter data in this formet : testingDate='2023-06-19T13:09:59+05:30'
+const testingDate = moment();
 
+// To check time is Between open and close time
 function validTime(time, open, close) {
   if (moment(time).isBetween(moment(open), moment(close))) {
     return true;
@@ -10,7 +12,8 @@ function validTime(time, open, close) {
   return false;
 }
 
-function timing(currentTime, witchTime) {
+// To claculate remaining hours to open or close
+function timing(currentTime, witchTime, isValidDay) {
   const amOrPMOfCurrentTime = currentTime.format("A");
   const amOrPMOfwitchTime = witchTime.format("A");
 
@@ -19,15 +22,21 @@ function timing(currentTime, witchTime) {
     currentTime.format("hh") !== "12"
   ) {
     return witchTime.format("hh") - currentTime.format("hh");
-  } else {
+  } else if (
+    amOrPMOfCurrentTime === "AM" ||
+    (amOrPMOfCurrentTime === "PM" && isValidDay)
+  ) {
     return witchTime.format("hh") - currentTime.format("hh") + 12;
+  } else if (amOrPMOfCurrentTime === "PM" && !isValidDay) {
+    return witchTime.format("hh") - currentTime.format("hh") - 12;
   }
 }
 
+// To check shop is open today or not,if not then get hours to open
 async function notOpenOnTheseDays(shop_schedule) {
   let extraHours = 0;
   for (let i = 0; i < 6; i++) {
-    let dayOfWeek = moment().add(i, "days");
+    let dayOfWeek = moment(testingDate).add(i, "days");
 
     let valid = shop_schedule.find(
       (Week) => Week.day === dayOfWeek.format("ddd")
@@ -40,15 +49,15 @@ async function notOpenOnTheseDays(shop_schedule) {
   }
 }
 
+// Get shop status
 async function shopStatus() {
   const shop_schedule = JSON.parse(await fs.readFile("./SHOP_SCHEDULE.json"));
-  const today = moment().format("ddd");
-  const currentTime = moment();
+  const today = moment(testingDate).format("ddd");
+  const currentTime = moment(testingDate);
 
   const testDate = `${currentTime.year()}-${
     currentTime.month() + 1
   }-${currentTime.date()}`;
-
   const openingTime = moment(
     `${testDate} ${shop_schedule[0].open}`,
     "YYYY-MM-DD HH:mm A"
@@ -62,21 +71,13 @@ async function shopStatus() {
   const isValidDay = shop_schedule.find((dayOfWeek) => dayOfWeek.day === today);
   const isvalidTime = validTime(currentTime, openingTime, closingTime);
 
-  let extraHours;
-  if (!isvalidTime && isValidDay) {
-    extraHours = await notOpenOnTheseDays(shop_schedule);
-  } else {
-    extraHours =
-      (await notOpenOnTheseDays(shop_schedule)) -
-      moment().startOf("day").fromNow().split(" ")[0] -
-      5;
-  }
+  const extraHours = await notOpenOnTheseDays(shop_schedule);
 
   let getHours;
   if (isValidDay && isvalidTime) {
-    getHours = timing(currentTime, closingTime) + extraHours;
+    getHours = timing(currentTime, closingTime, isValidDay) + extraHours;
   } else {
-    getHours = timing(currentTime, openingTime) + extraHours;
+    getHours = timing(currentTime, openingTime, isValidDay) + extraHours;
   }
   return { isValidDay, isvalidTime, getHours };
 }
